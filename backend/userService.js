@@ -1,83 +1,44 @@
-/**
- * Required dependencies
- */
-const fs = require("fs");
-const nodemailer = require("nodemailer");
-const jwt = require("jsonwebtoken");
+const mongoose = require('mongoose');
+const nodemailer = require('nodemailer');
+const jwt = require('jsonwebtoken');
 
-const dbFilePath = "users.json";
+const userSchema = new mongoose.Schema({
+  username: String,
+  password: String,
+  email: String,
+  collegeName: String,
+  firstName: String,
+  lastName: String,
+  otp: String,
+  verified: Boolean,
+});
 
-/**
- * Read data from the JSON file and initialize the users array
- */
-function readDataFromJsonFile() {
-  try {
-    const jsonData = fs.readFileSync(dbFilePath, "utf8");
-    users = JSON.parse(jsonData);
-  } catch (error) {
-    console.log("Error reading JSON file:", error);
-    users = [];
-  }
-}
+const User = mongoose.model('User', userSchema);
 
-/**
- * Write data to the JSON file
- */
-function writeDataToJsonFile() {
-  const jsonData = JSON.stringify(users, null, 2);
-  fs.writeFileSync(dbFilePath, jsonData, "utf8");
-}
-
-/**
- * Generate a 25-digit alphanumeric OTP (One-Time Password)
- * @returns {string} - Generated OTP
- */
-function generateOTP() {
-  const characters =
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-  let otp = "";
-  for (let i = 0; i < 25; i++) {
-    otp += characters.charAt(Math.floor(Math.random() * characters.length));
-  }
-  return otp;
-}
-
-/**
- * Create a Nodemailer transporter
- */
 const transporter = nodemailer.createTransport({
-  service: "gmail",
+  service: 'gmail',
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASSWORD,
   },
 });
 
-/**
- * User service module for user-related operations
- */
 const userService = {
-  /**
-   * Register a new user
-   * @param {object} userData - User data including username, password, email, collegeName, firstName, and lastName
-   * @returns {object} - Registered user object
-   * @throws {Error} - If password and confirm password do not match, or if username or email already exists
-   */
-  registerUser: (userData) => {
+  registerUser: async (userData) => {
     const { username, password, confirmPassword, email, collegeName, firstName, lastName } = userData;
 
     if (password !== confirmPassword) {
-      throw new Error("Password and confirm password do not match");
+      throw new Error('Password and confirm password do not match');
     }
 
-    const existingUser = users.find((user) => user.username === username || user.email === email);
+    const existingUser = await User.findOne({ $or: [{ username }, { email }] });
     if (existingUser) {
-      throw new Error("Username or email already exists");
+      throw new Error('Username or email already exists');
     }
 
     const otp = generateOTP();
 
-    const user = {
+    const user = new User({
       username,
       password, // TODO: Implement password hashing for security
       email,
@@ -86,76 +47,62 @@ const userService = {
       lastName,
       otp,
       verified: false,
-    };
+    });
 
-    users.push(user);
-    writeDataToJsonFile();
+    await user.save();
 
     const mailOptions = {
       from: process.env.EMAIL_USER,
       to: email,
-      subject: "Registration OTP",
+      subject: 'Registration OTP',
       text: `Your OTP for registration is: ${otp}`,
     };
 
     transporter.sendMail(mailOptions, (error, info) => {
       if (error) {
-        console.log("Error sending email:", error);
+        console.log('Error sending email:', error);
       } else {
-        console.log("Email sent:", info.response);
+        console.log('Email sent:', info.response);
       }
     });
 
-    console.log("User registered successfully:");
+    console.log('User registered successfully:');
     console.log(user);
     return user;
   },
 
-  /**
-   * Verify user with OTP
-   * @param {string} otp - One-Time Password
-   * @returns {object} - Verified user object
-   * @throws {Error} - If user is not found or if invalid OTP is provided
-   */
-  verifyUser: (otp) => {
-    const user = users.find((user) => user.otp === otp);
+  verifyUser: async (otp) => {
+    const user = await User.findOne({ otp });
 
     if (!user) {
-      throw new Error("User not found");
+      throw new Error('User not found');
     }
 
     if (otp !== user.otp) {
-      throw new Error("Invalid OTP");
+      throw new Error('Invalid OTP');
     }
 
     user.verified = true;
-    writeDataToJsonFile();
+    await user.save();
 
-    console.log("User verified successfully:");
+    console.log('User verified successfully:');
     console.log(user);
     return user;
   },
 
-  /**
-   * Login user and generate JWT token
-   * @param {string} username - User's username
-   * @param {string} password - User's password
-   * @returns {string} - JWT token
-   * @throws {Error} - If user is not found, invalid password, or user is not verified
-   */
-  loginUser: (username, password) => {
-    const user = users.find((user) => user.username === username);
+  loginUser: async (username, password) => {
+    const user = await User.findOne({ username });
 
     if (!user) {
-      throw new Error("User not found");
+      throw new Error('User not found');
     }
 
     if (password !== user.password) {
-      throw new Error("Invalid password");
+      throw new Error('Invalid password');
     }
 
     if (!user.verified) {
-      throw new Error("User not verified");
+      throw new Error('User not verified');
     }
 
     const payload = {
@@ -166,12 +113,72 @@ const userService = {
 
     const token = jwt.sign(payload, process.env.JWT_SECRET);
 
-    console.log("User logged in successfully:");
+    console.log('User logged in successfully:');
     console.log(user);
     return token;
   },
+
+  forgotPassword: async (usernameOrEmail) => {
+    const user = await User.findOne({
+      $or: [{ username: usernameOrEmail }, { email: usernameOrEmail }],
+    });
+
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    const otp = generateOTP();
+
+    user.otp = otp;
+    await user.save();
+
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: user.email,
+      subject: 'Password Reset OTP',
+      text: `Your OTP for password reset is: ${otp}`,
+    };
+
+    transporter.sendMail(mailOptions, (error, info) => {
+      if (error) {
+        console.log('Error sending email:', error);
+      } else {
+        console.log('Email sent:', info.response);
+      }
+    });
+
+    console.log('OTP sent for password reset:');
+    console.log(user);
+    return user;
+  },
+
+  resetPassword: async (username, existingPassword, newPassword) => {
+    const user = await User.findOne({ username });
+
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    if (existingPassword !== user.password) {
+      throw new Error('Invalid existing password');
+    }
+
+    user.password = newPassword; // TODO: Implement password hashing for security
+    await user.save();
+
+    console.log('Password reset successfully for user:', user.username);
+    return user;
+  },
+  
 };
 
-readDataFromJsonFile();
+function generateOTP() {
+  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let otp = '';
+  for (let i = 0; i < 25; i++) {
+    otp += characters.charAt(Math.floor(Math.random() * characters.length));
+  }
+  return otp;
+}
 
 module.exports = userService;
