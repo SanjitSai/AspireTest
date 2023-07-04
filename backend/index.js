@@ -1,3 +1,5 @@
+require('dotenv').config();
+
 /**
  * Required dependencies
  */
@@ -15,8 +17,8 @@ const app = express();
 /**
  * Middleware
  */
-app.use(cors()); // Enable CORS
-app.use(express.json()) // Parse JSON request bodies
+app.use(cors());
+app.use(express.json());
 
 /**
  * Array to store user data
@@ -45,82 +47,59 @@ function readDataFromJsonFile() {
  * Write data to the JSON file
  */
 function writeDataToJsonFile() {
-    const jsonData = JSON.stringify(users, null, 2);
-    fs.writeFileSync(dbFilePath, jsonData, "utf8");
-  }
+  const jsonData = JSON.stringify(users, null, 2);
+  fs.writeFileSync(dbFilePath, jsonData, "utf8");
+}
 
 /**
  * Generate a 25-digit alphanumeric OTP (One-Time Password)
  */
-  function generateOTP() {
-    // For simplicity, we'll generate a random 25-character string
-    const characters =
-      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-    let otp = "";
-    for (let i = 0; i < 25; i++) {
-      otp += characters.charAt(Math.floor(Math.random() * characters.length));
-    }
-    return otp;
+function generateOTP() {
+  const characters =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  let otp = "";
+  for (let i = 0; i < 25; i++) {
+    otp += characters.charAt(Math.floor(Math.random() * characters.length));
   }
+  return otp;
+}
 
 /**
  * Create a Nodemailer transporter
  */
-  const transporter = nodemailer.createTransport({
-    service: "gmail",
-    auth: {
-      user: "sanjitkolla519@gmail.com",
-      pass: "Aspire@1234",
-    },
-  });
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASSWORD,
+  },
+});
 
-  /** * Endpoint: /register
- * Method: POST
- * Description: Register a new user
- * Request Body:
- *   - username: string
- *   - password: string
- *   - confirmPassword: string
- *   - email: string
- *   - collegeName: string
- *   - firstName: string
- *   - lastName: string
- */
-app.post("/register", (req, res) => {
-    const {
-      username,
-      password,
-      confirmPassword,
-      email,
-      collegeName,
-      firstName,
-      lastName,
-    } = req.body;
-  
-    // Check if password and confirmPassword match
+// User service module for user-related operations
+const userService = {
+  /**
+   * Register a new user
+   * @param {object} userData - User data including username, password, email, collegeName, firstName, and lastName
+   * @returns {object} - Registered user object
+   * @throws {Error} - If password and confirm password do not match, or if username or email already exists
+   */
+  registerUser: (userData) => {
+    const { username, password, confirmPassword, email, collegeName, firstName, lastName } = userData;
+
     if (password !== confirmPassword) {
-      return res
-        .status(400)
-        .json({ message: "Password and confirm password do not match" });
+      throw new Error("Password and confirm password do not match");
     }
-  
-    // Check if username or email already exists
-    const existingUser = users.find(
-      (user) => user.username === username || user.email === email
-    );
+
+    const existingUser = users.find((user) => user.username === username || user.email === email);
     if (existingUser) {
-      return res
-        .status(409)
-        .json({ message: "Username or email already exists" });
+      throw new Error("Username or email already exists");
     }
-  
-    // Generate OTP
+
     const otp = generateOTP();
-  
-    // Create user with the provided details
+
     const user = {
       username,
-      password, // after testing encode the password for safety
+      password, // TODO: Implement password hashing for security
       email,
       collegeName,
       firstName,
@@ -128,21 +107,17 @@ app.post("/register", (req, res) => {
       otp,
       verified: false,
     };
-  
-    // Save the user to the in-memory store
+
     users.push(user);
-  
-    // Write data to the JSON file
     writeDataToJsonFile();
-  
-    // Send email with OTP to the provided email address
+
     const mailOptions = {
-      from: "sanjitkolla519@gmail.com",
+      from: process.env.EMAIL_USER,
       to: email,
       subject: "Registration OTP",
       text: `Your OTP for registration is: ${otp}`,
     };
-  
+
     transporter.sendMail(mailOptions, (error, info) => {
       if (error) {
         console.log("Error sending email:", error);
@@ -150,104 +125,107 @@ app.post("/register", (req, res) => {
         console.log("Email sent:", info.response);
       }
     });
-  
+
     console.log("User registered successfully:");
     console.log(user);
-    return res.status(201).json({ message: "User registered successfully" });
-  });
-
-  /*** Endpoint: /verify
- * Method: POST
- * Description: Verify the user with OTP
- * Request Body:
- *   - otp: string
- */
-// app.get("/", (req,res) => {
-//     res.send(`Server running`)
-// })
-app.post("/verify", (req, res) => {
-    const { otp } = req.body;
+    return user;
+  },
   
-    // Find the user with the provided email address
-    const users = JSON.parse(fs.readFileSync(dbFilePath, "utf8"));
+  /**
+   * Verify user with OTP
+   * @param {string} otp - One-Time Password
+   * @returns {object} - Verified user object
+   * @throws {Error} - If user is not found or if invalid OTP is provided
+   */
+  verifyUser: (otp) => {
+    const user = users.find((user) => user.otp === otp);
 
-    const user = users.find(user => user.otp === otp);
-  
     if (!user) {
-      return res.status(404).json({ message: "User not found" });
+      throw new Error("User not found");
     }
-  
-    // Check if the provided OTP matches the user's OTP
+
     if (otp !== user.otp) {
-      return res.status(401).json({ message: "Invalid OTP" });
+      throw new Error("Invalid OTP");
     }
-  
-    // Set the user as verified
-    //if(user && otp){
+
     user.verified = true;
-   // }
-  
-    // Write data to the JSON file
-    //fs.writeFileSync('./users.json', JSON.stringify(users));
     writeDataToJsonFile();
-  
+
     console.log("User verified successfully:");
     console.log(user);
-    return res.status(200).json({ message: "User verified successfully" });
-  });
+    return user;
+  },
   
-  /** Endpoint: /login
-   * Method: POST
-   * Description: Authenticate a user and generate JWT token
-   * Request Body:
-   *   - username: string
-   *   - password: string
+  /**
+   * Login user and generate JWT token
+   * @param {string} username - User's username
+   * @param {string} password - User's password
+   * @returns {string} - JWT token
+   * @throws {Error} - If user is not found, invalid password, or user is not verified
    */
-  app.post("/login", (req, res) => {
-    const { username, password } = req.body;
-  
-    // Find the user with the provided username
-    const users = JSON.parse(fs.readFileSync('./users.json'));
+  loginUser: (username, password) => {
     const user = users.find((user) => user.username === username);
-  
-    // Check if user exist in user.json
+
     if (!user) {
-      return res.status(404).json({ message: "User not found" });
+      throw new Error("User not found");
     }
-  
-    // Check if the password matches
+
     if (password !== user.password) {
-      return res.status(401).json({ message: "Invalid password" });
+      throw new Error("Invalid password");
     }
-  
-    // Check if the user is verified
+
     if (!user.verified) {
-      return res.status(401).json({ message: "User not verified" });
+      throw new Error("User not verified");
     }
-  
-    // Create a payload for the JWT token
+
     const payload = {
       username: user.username,
       email: user.email,
       collegeName: user.collegeName,
     };
-  
-    // Generate JWT token
-    const token = jwt.sign(payload, "your-secret-key");
-  
+
+    const token = jwt.sign(payload, process.env.JWT_SECRET);
+
     console.log("User logged in successfully:");
     console.log(user);
+    return token;
+  },
+};
+
+// Route handlers
+app.post("/register", (req, res) => {
+  try {
+    const user = userService.registerUser(req.body);
+    return res.status(201).json({ message: "User registered successfully", user });
+  } catch (error) {
+    return res.status(400).json({ message: error.message });
+  }
+});
+
+app.post("/verify", (req, res) => {
+  try {
+    const { otp } = req.body;
+    const user = userService.verifyUser(otp);
+    return res.status(200).json({ message: "User verified successfully", user });
+  } catch (error) {
+    return res.status(400).json({ message: error.message });
+  }
+});
+
+app.post("/login", (req, res) => {
+  try {
+    const { username, password } = req.body;
+    const token = userService.loginUser(username, password);
     return res.status(200).json({ token });
-  });
-  
-/**
- * Start the server
- */
-  app.listen(3004, () => {
-    console.log("Server is running on port 3004");
-  });
-  
-  /**
- * Read data from the JSON file on server startup
- */
-  readDataFromJsonFile();
+  } catch (error) {
+    return res.status(400).json({ message: error.message });
+  }
+});
+
+// Start the server
+app.listen(3004, () => {
+  console.log("Server is running on port 3004");
+});
+
+// Read data from the JSON file on server startup
+readDataFromJsonFile();
