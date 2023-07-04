@@ -1,0 +1,22 @@
+[
+  {
+    "username": "exampleUser",
+    "password": "examplePassword",
+    "email": "user@example.com",
+    "collegeName": "Example College",
+    "firstName": "John",
+    "lastName": "Doe",
+    "otp": "ids5UMyEYLMwFrVrb7FYiSaqf",
+    "verified": true
+  },
+  {
+    "username": "sanjit",
+    "password": "examplePassword",
+    "email": "sanjitsaikolla@gmail.com",
+    "collegeName": "Example College",
+    "firstName": "Sanjit",
+    "lastName": "Kolla",
+    "otp": "YcaRFIbCgT7glvGDnjCj9x6xE",
+    "verified": true
+  }
+]
