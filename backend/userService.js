@@ -1,33 +1,10 @@
-require('dotenv').config();
-
 /**
  * Required dependencies
  */
-const express = require("express");
 const fs = require("fs");
-const cors = require("cors");
 const nodemailer = require("nodemailer");
 const jwt = require("jsonwebtoken");
 
-/**
- * Create an instance of Express app
- */
-const app = express();
-
-/**
- * Middleware
- */
-app.use(cors());
-app.use(express.json());
-
-/**
- * Array to store user data
- */
-let users = [];
-
-/**
- * JSON file path
- */
 const dbFilePath = "users.json";
 
 /**
@@ -53,6 +30,7 @@ function writeDataToJsonFile() {
 
 /**
  * Generate a 25-digit alphanumeric OTP (One-Time Password)
+ * @returns {string} - Generated OTP
  */
 function generateOTP() {
   const characters =
@@ -75,7 +53,9 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-// User service module for user-related operations
+/**
+ * User service module for user-related operations
+ */
 const userService = {
   /**
    * Register a new user
@@ -130,7 +110,7 @@ const userService = {
     console.log(user);
     return user;
   },
-  
+
   /**
    * Verify user with OTP
    * @param {string} otp - One-Time Password
@@ -155,7 +135,7 @@ const userService = {
     console.log(user);
     return user;
   },
-  
+
   /**
    * Login user and generate JWT token
    * @param {string} username - User's username
@@ -192,40 +172,6 @@ const userService = {
   },
 };
 
-// Route handlers
-app.post("/register", (req, res) => {
-  try {
-    const user = userService.registerUser(req.body);
-    return res.status(201).json({ message: "User registered successfully", user });
-  } catch (error) {
-    return res.status(400).json({ message: error.message });
-  }
-});
-
-app.post("/verify", (req, res) => {
-  try {
-    const { otp } = req.body;
-    const user = userService.verifyUser(otp);
-    return res.status(200).json({ message: "User verified successfully", user });
-  } catch (error) {
-    return res.status(400).json({ message: error.message });
-  }
-});
-
-app.post("/login", (req, res) => {
-  try {
-    const { username, password } = req.body;
-    const token = userService.loginUser(username, password);
-    return res.status(200).json({ token });
-  } catch (error) {
-    return res.status(400).json({ message: error.message });
-  }
-});
-
-// Start the server
-app.listen(3004, () => {
-  console.log("Server is running on port 3004");
-});
-
-// Read data from the JSON file on server startup
 readDataFromJsonFile();
+
+module.exports = userService;
