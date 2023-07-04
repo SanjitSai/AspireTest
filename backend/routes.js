@@ -62,4 +62,23 @@ router.post("/login", async (req, res, next) => {
   }
 });
 
+// Forgot password route
+router.post('/forgotpassword', async (req, res) => {
+    try {
+      const user = await userService.forgotPassword(req.body.usernameOrEmail);
+      res.json(user);
+    } catch (error) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  router.put('/resetpassword', async (req, res, next) => {
+    try {
+      const { username, existingPassword, newPassword } = req.body;
+      const user = await userService.resetPassword(username, existingPassword, newPassword);
+      res.status(200).json({ message: 'Password reset successful', user });
+    } catch (error) {
+      res.status(400).json({ error: error.message });
+    }
+  });
 module.exports = router;
