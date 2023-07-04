@@ -18,5 +18,25 @@
     "lastName": "Kolla",
     "otp": "YcaRFIbCgT7glvGDnjCj9x6xE",
     "verified": true
+  },
+  {
+    "username": "jane_smith",
+    "password": "password456",
+    "email": "jane.smith@example.com",
+    "collegeName": "Example University",
+    "firstName": "Jane",
+    "lastName": "Smith",
+    "otp": "A1FEw3KHCwwLe3PZLmkdQcVnt",
+    "verified": true
+  },
+  {
+    "username": "testuser",
+    "password": "testpassword",
+    "email": "testuser@example.com",
+    "collegeName": "Example College",
+    "firstName": "John",
+    "lastName": "Doe",
+    "otp": "XPIKAU8gQJaiI478uDmpHJ56i",
+    "verified": true
   }
 ]
