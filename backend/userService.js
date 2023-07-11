@@ -2,6 +2,10 @@ const mongoose = require('mongoose');
 const nodemailer = require('nodemailer');
 const jwt = require('jsonwebtoken');
 
+/**
+ * Define the user schema using Mongoose
+ */
+
 const userSchema = new mongoose.Schema({
   username: String,
   password: String,
@@ -11,9 +15,44 @@ const userSchema = new mongoose.Schema({
   lastName: String,
   otp: String,
   verified: Boolean,
+  isBanned: Boolean,
+  isVerified_forgot: Boolean,
+  name: String,  
+  city: String,  
+  country: String,  
+  bio: String,
+  jwtToken: String,  
+  education: [  
+    {
+      universityName: String,
+      branch: String,
+      startDate: String,
+      endDate: String, 
+    },
+  ],
+  workExperiences: [  
+    {
+      id: Number,
+      companyName: String,
+      position: String,
+      description: String,
+      startDate: String,
+      endDate: String,
+
+    },
+  ],
+  skills: [],
 });
 
+/**
+ * Create a User model using the user schema
+ */
+
 const User = mongoose.model('User', userSchema);
+
+/**
+ * Create a nodemailer transport for sending emails
+ */
 
 const transporter = nodemailer.createTransport({
   service: 'gmail',
@@ -23,7 +62,19 @@ const transporter = nodemailer.createTransport({
   },
 });
 
+/**
+ * Define the userService object with methods for user-related operations
+ */
+
 const userService = {
+
+  /**
+   * Register a new user
+   * @param {Object} userData - User registration data
+   * @returns {Promise<User>} - The registered user
+   * @throws {Error} - If registration fails
+   */
+
   registerUser: async (userData) => {
     const { username, password, confirmPassword, email, collegeName, firstName, lastName } = userData;
 
@@ -47,6 +98,9 @@ const userService = {
       lastName,
       otp,
       verified: false,
+      isBanned: false,
+      isVerified_forgot: false,
+      jwtToken: "",
     });
 
     await user.save();
@@ -70,6 +124,13 @@ const userService = {
     console.log(user);
     return user;
   },
+  
+  /**
+   * Verify a user with the provided OTP
+   * @param {string} otp - The OTP to verify
+   * @returns {Promise<User>} - The verified user
+   * @throws {Error} - If verification fails
+   */
 
   verifyUser: async (otp) => {
     const user = await User.findOne({ otp });
@@ -90,6 +151,14 @@ const userService = {
     return user;
   },
 
+  /**
+   * Log in a user with the provided username and password
+   * @param {string} username - The user's username
+   * @param {string} password - The user's password
+   * @returns {Promise<string>} - The JWT token for the logged-in user
+   * @throws {Error} - If login fails
+   */
+  
   loginUser: async (username, password) => {
     const user = await User.findOne({ username });
 
@@ -99,6 +168,10 @@ const userService = {
 
     if (password !== user.password) {
       throw new Error('Invalid password');
+    }
+
+    if(user.isBanned){
+      throw new Error('User is banned');
     }
 
     if (!user.verified) {
@@ -113,11 +186,20 @@ const userService = {
 
     const token = jwt.sign(payload, process.env.JWT_SECRET);
 
+    user.jwtToken = token;
+
     console.log('User logged in successfully:');
     console.log(user);
     return token;
   },
 
+  /**
+   * Send a password reset OTP to the user's email
+   * @param {string} usernameOrEmail - The username or email of the user
+   * @returns {Promise<User>} - The user for whom the OTP is sent
+   * @throws {Error} - If sending the OTP fails
+   */
+  
   forgotPassword: async (usernameOrEmail) => {
     const user = await User.findOne({
       $or: [{ username: usernameOrEmail }, { email: usernameOrEmail }],
@@ -152,11 +234,24 @@ const userService = {
     return user;
   },
 
+  /**
+   * Reset a user's password with the provided OTP and new password
+   * @param {string} username - The username of the user
+   * @param {string} existingPassword - The existing password of the user
+   * @param {string} newPassword - The new password to set for the user
+   * @returns {Promise<User>} - The user with the updated password
+   * @throws {Error} - If resetting the password fails
+   */
+  
   resetPassword: async (username, existingPassword, newPassword) => {
     const user = await User.findOne({ username });
 
     if (!user) {
       throw new Error('User not found');
+    }
+
+    if(!user.isVerify_forgot===false){
+      throw new Error('Invalid or expired OTP');
     }
 
     if (existingPassword !== user.password) {
@@ -172,6 +267,11 @@ const userService = {
   
 };
 
+/**
+ * Generate a random OTP
+ * @returns {string} - The generated OTP
+ */
+
 function generateOTP() {
   const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
   let otp = '';
@@ -181,4 +281,7 @@ function generateOTP() {
   return otp;
 }
 
-module.exports = userService;
+module.exports = {
+  User,
+  userService,
+};

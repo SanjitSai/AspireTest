@@ -4,7 +4,7 @@
 const express = require("express");
 const router = express.Router();
 const userService = require("./userService");
-
+const User = userService.User;
 /**
  * Route: /register
  * Method: POST
@@ -62,7 +62,13 @@ router.post("/login", async (req, res, next) => {
   }
 });
 
-// Forgot password route
+/**
+ * Route: /forgotpassword
+ * Method: POST
+ * Description: Authenticate a user and generate JWT token
+ * Request Body:
+ *   - username or email: string
+ */
 router.post('/forgotpassword', async (req, res) => {
     try {
       const user = await userService.forgotPassword(req.body.usernameOrEmail);
@@ -71,6 +77,16 @@ router.post('/forgotpassword', async (req, res) => {
       res.status(400).json({ error: error.message });
     }
   });
+
+  /**
+ * Route: /resetpassword
+ * Method: PUT
+ * Description: Authenticate a user and generate JWT token
+ * Request Body:
+ *   - username: string
+ *   - existingPassword: string
+ *   - newPassword: string
+ */
 
   router.put('/resetpassword', async (req, res, next) => {
     try {
@@ -81,4 +97,5 @@ router.post('/forgotpassword', async (req, res) => {
       res.status(400).json({ error: error.message });
     }
   });
+  
 module.exports = router;
