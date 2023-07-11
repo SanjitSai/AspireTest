@@ -17,20 +17,20 @@ const userSchema = new mongoose.Schema({
   verified: Boolean,
   isBanned: Boolean,
   isVerified_forgot: Boolean,
-  name: String,  
-  city: String,  
-  country: String,  
+  name: String,
+  city: String,
+  country: String,
   bio: String,
-  jwtToken: String,  
-  education: [  
+  jwtToken: String,
+  education: [
     {
       universityName: String,
       branch: String,
       startDate: String,
-      endDate: String, 
+      endDate: String,
     },
   ],
-  workExperiences: [  
+  workExperiences: [
     {
       id: Number,
       companyName: String,
@@ -124,7 +124,7 @@ const userService = {
     console.log(user);
     return user;
   },
-  
+
   /**
    * Verify a user with the provided OTP
    * @param {string} otp - The OTP to verify
@@ -158,7 +158,7 @@ const userService = {
    * @returns {Promise<string>} - The JWT token for the logged-in user
    * @throws {Error} - If login fails
    */
-  
+
   loginUser: async (username, password) => {
     const user = await User.findOne({ username });
 
@@ -170,7 +170,7 @@ const userService = {
       throw new Error('Invalid password');
     }
 
-    if(user.isBanned){
+    if (user.isBanned) {
       throw new Error('User is banned');
     }
 
@@ -199,7 +199,7 @@ const userService = {
    * @returns {Promise<User>} - The user for whom the OTP is sent
    * @throws {Error} - If sending the OTP fails
    */
-  
+
   forgotPassword: async (usernameOrEmail) => {
     const user = await User.findOne({
       $or: [{ username: usernameOrEmail }, { email: usernameOrEmail }],
@@ -242,7 +242,7 @@ const userService = {
    * @returns {Promise<User>} - The user with the updated password
    * @throws {Error} - If resetting the password fails
    */
-  
+
   resetPassword: async (username, existingPassword, newPassword) => {
     const user = await User.findOne({ username });
 
@@ -250,7 +250,7 @@ const userService = {
       throw new Error('User not found');
     }
 
-    if(!user.isVerify_forgot===false){
+    if (!user.isVerify_forgot === false) {
       throw new Error('Invalid or expired OTP');
     }
 
@@ -264,7 +264,7 @@ const userService = {
     console.log('Password reset successfully for user:', user.username);
     return user;
   },
-  
+
 };
 
 /**
