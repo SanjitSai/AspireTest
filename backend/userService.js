@@ -10,6 +10,8 @@ const userSchema = new mongoose.Schema({
   username: String,
   password: String,
   email: String,
+  role: String,
+  // Additional fields specific to regular users
   collegeName: String,
   firstName: String,
   lastName: String,
