@@ -2,8 +2,7 @@ const mongoose = require('mongoose');
 const nodemailer = require('nodemailer');
 const jwt = require('jsonwebtoken');
 
-/**
- * Define the user schema using Mongoose
+/*** Define the user schema using Mongoose
  */
 
 const userSchema = new mongoose.Schema({
@@ -47,14 +46,12 @@ const userSchema = new mongoose.Schema({
   predefinedSkills: [String]
 });
 
-/**
- * Create a User model using the user schema
+/*** Create a User model using the user schema
  */
 
 const User = mongoose.model('User', userSchema);
 
-/**
- * Create a nodemailer transport for sending emails
+/*** Create a nodemailer transport for sending emails
  */
 
 const transporter = nodemailer.createTransport({
@@ -65,14 +62,12 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-/**
- * Define the userService object with methods for user-related operations
+/*** Define the userService object with methods for user-related operations
  */
 
 const userService = {
 
-  /**
-   * Register a new user
+  /*** Register a new user
    * @param {Object} userData - User registration data
    * @returns {Promise<User>} - The registered user
    * @throws {Error} - If registration fails
@@ -128,8 +123,7 @@ const userService = {
     return user;
   },
   
-  /**
-   * Verify a user with the provided OTP
+  /*** Verify a user with the provided OTP
    * @param {string} otp - The OTP to verify
    * @returns {Promise<User>} - The verified user
    * @throws {Error} - If verification fails
@@ -154,8 +148,7 @@ const userService = {
     return user;
   },
 
-  /**
-   * Log in a user with the provided username and password
+  /*** Log in a user with the provided username and password
    * @param {string} username - The user's username
    * @param {string} password - The user's password
    * @returns {Promise<string>} - The JWT token for the logged-in user
@@ -196,8 +189,7 @@ const userService = {
     return token;
   },
 
-  /**
-   * Send a password reset OTP to the user's email
+  /*** Send a password reset OTP to the user's email
    * @param {string} usernameOrEmail - The username or email of the user
    * @returns {Promise<User>} - The user for whom the OTP is sent
    * @throws {Error} - If sending the OTP fails
@@ -237,8 +229,7 @@ const userService = {
     return user;
   },
 
-  /**
-   * Reset a user's password with the provided OTP and new password
+  /*** Reset a user's password with the provided OTP and new password
    * @param {string} username - The username of the user
    * @param {string} existingPassword - The existing password of the user
    * @param {string} newPassword - The new password to set for the user
@@ -267,6 +258,23 @@ const userService = {
     console.log('Password reset successfully for user:', user.username);
     return user;
   },
+
+  /*** Get the predefined skills from the user schema.
+  *
+  * @returns {Promise<string[]>} - An array of predefined skills.
+  * @throws {Error} - If an error occurs while fetching the predefined skills.
+  */
+  getPredefinedSkills: async () => {
+    try {
+      // Access the predefinedSkills array from the user schema
+      const predefinedSkills = User.schema.path('predefinedSkills').caster.enumValues;
+      
+      return predefinedSkills;
+    } catch (error) {
+      console.error('Error fetching predefined skills:', error);
+      throw new Error('Error fetching predefined skills.');
+    }
+  }
   
 };
 
