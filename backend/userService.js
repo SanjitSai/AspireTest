@@ -44,6 +44,7 @@ const userSchema = new mongoose.Schema({
     },
   ],
   skills: [],
+  predefinedSkills: [String]
 });
 
 /**
