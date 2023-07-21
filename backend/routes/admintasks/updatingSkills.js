@@ -62,7 +62,7 @@ router.put('/', async (req, res) =>{
   }
 });
 
-route.put('/newskills', async (req, res) => {
+router.put('/newskills', async (req, res) => {
   try{
     const { newSkills } = req.body;
     // Retrieve new added skills fom userSchema
