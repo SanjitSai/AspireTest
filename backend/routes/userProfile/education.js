@@ -27,6 +27,11 @@ router.post('/', async (req, res) => {
     if (user.jwtToken === "") {
       return res.status(404).json({ error: 'Invalid User' })
     }
+
+    if(user.role !== "user"){
+      throw new Error("Only users can add Education")
+    }
+    
     const array_length = user.education.length
 
     const education = {
