@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { User, userService } = require("../../userService");
 
-/*** Get the predefined skills list.
+/* Get the predefined skills list.
  * @route GET /skills
  * @group Skills - Operations related to user skills
  * @returns {object} 200 - Success response with the predefined skills list
@@ -54,11 +54,12 @@ router.put('/', async (req, res) =>{
 
     // making skillsAddedbyUser as empty list
     await User.updateOne({}, { $set: { skillsAddedbyUser: [] } });
+    return res.json({ message: 'Skill updated successfully', updatedPredefinedSkills });
     
   }catch (error) {
     console.error('Error while updating predefined skills:', error);
-    res.status(500).json({ error: 'Server error' });
-  }
+    res.status(500).json({ error: 'Server error' });
+  }
 });
 
 router.put('/newskills', async (req, res) => {
@@ -77,18 +78,20 @@ router.put('/newskills', async (req, res) => {
     }
 
     if(user.role !== 'admin'){
-       return res.status(404).json({ error: 'Only admin can make cahnges'})
+       return res.status(404).json({ error: 'Only admin can make changes'})
     }
     
     const predefinedSkills = await User.schema.path("predefinedSkills").caster.enumValues;
 
-    const updatedPredefinedSkills = predefinedSkills.push.apply(predefinedSkills, newSkills) // Adding new skills to the predefinedSkills list by admin 
+    predefinedSkills.push.apply(predefinedSkills, newSkills)// Adding new skills to the predefinedSkills list by admin 
     await User.updateOne({}, { $set: { predefinedSkills } }); // saving the changes in db
 
+    return res.json({ message: 'Skill added successfully', predefinedSkills });
+    
   }catch (error) {
     console.error('Error while adding new skills to predefined skills:', error);
-    res.status(500).json({ error: 'Server error' });
-  }
+    res.status(500).json({ error: 'Server error' });
+  }
 });
 
-module.exports = router;
+module.exports = router;
