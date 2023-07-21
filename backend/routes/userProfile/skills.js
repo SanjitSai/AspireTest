@@ -2,6 +2,24 @@ const express = require('express');
 const router = express.Router();
 const { User, userService } = require("../../userService");
 
+/**
+ * Get the predefined skills list.
+ * @route GET /skills
+ * @group Skills - Operations related to user skills
+ * @returns {object} 200 - Success response with the predefined skills list
+ * @returns {object} 500 - Error response for server error
+ */
+router.get('/', async (req, res) => {
+  try {
+    const predefinedSkills = await userService.getPredefinedSkills(); // Getting predefinedSkills list from UserSchema using getPredefinedSkills function in userService.js
+    
+    res.json({ predefinedSkills }); // displaying predefined skills 
+  } catch (error) {
+    console.error('Error fetching predefined skills:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 /*** Add a skill to the user's skills array.
  * @route PUT /skills
  * @group Skills - Operations related to user skills
