@@ -38,6 +38,7 @@ app.post("/addeducation", education);
 app.put("/updateeducation", education);
 app.put("/addskill", skill);
 app.delete("/deleteskill", skill)
+app.use("/displayskills", skill)
 app.use(routes);
 
 const port = process.env.PORT || 3004;
