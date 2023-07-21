@@ -41,8 +41,8 @@ router.put('/', async (req, res) =>{
     const newlyAddedSkillsbyUser = await User.schema.path("skillsAddedbyUser").caster.enumValues;
     const predefinedSkills = await User.schema.path("predefinedSkills").caster.enumValues;
 
-    predefinedSkills = predefinedSkills.filter((skill) => !invalidSkills.includes(skill)); // deleting invalid skills from predefinedSkills list
-    await User.updateOne({}, { $set: { predefinedSkills } }); // saving the changes in db
+    const updatedPredefinedSkills = predefinedSkills.filter((skill) => !invalidSkills.includes(skill)); // filtering out invalid skills from predefinedSkills list
+    await User.updateOne({}, { $set: { predefinedSkills: updatedPredefinedSkills } }); // saving the changes in the database
 
     // Now we have to delete these invalid skills from user's skill section if they exist.
     const usersWithInvalidSkills = await User.find({ skills: { $in: invalidSkills } });
@@ -53,18 +53,17 @@ router.put('/', async (req, res) =>{
     });
 
     // making skillsAddedbyUser as empty list
-    skillsAddedbyUser = []
-    await User.updateOne({}, { $set: { skillsAddedbyUser } });
+    await User.updateOne({}, { $set: { skillsAddedbyUser: [] } });
     
-  }catch{
-    console.error(error);
-    res.status(500).json({ error: 'Server error' });
-  }
+  }catch (error) {
+    console.error('Error while updating predefined skills:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
 });
 
 router.put('/newskills', async (req, res) => {
   try{
-    const { newSkills } = req.body;
+    const { username, newSkills } = req.body;
     // Retrieve new added skills fom userSchema
 
     const user = await User.findOne({ username });
@@ -82,14 +81,14 @@ router.put('/newskills', async (req, res) => {
     }
     
     const predefinedSkills = await User.schema.path("predefinedSkills").caster.enumValues;
-    
-    predefinedSkills = predefinedSkills.push.apply(predefinedSkills, newSkills) // Adding new skills to the predefinedSkills list by admin 
+
+    const updatedPredefinedSkills = predefinedSkills.push.apply(predefinedSkills, newSkills) // Adding new skills to the predefinedSkills list by admin 
     await User.updateOne({}, { $set: { predefinedSkills } }); // saving the changes in db
 
-  }catch{
-    console.error(error);
-    res.status(500).json({ error: 'Server error' });
-  }
+  }catch (error) {
+    console.error('Error while adding new skills to predefined skills:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
 });
 
 module.exports = router;
