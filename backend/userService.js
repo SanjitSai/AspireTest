@@ -43,7 +43,8 @@ const userSchema = new mongoose.Schema({
     },
   ],
   skills: [],
-  predefinedSkills: [String]
+  predefinedSkills: [String],
+  skillsAddedbyUser: [String]
 });
 
 /*** Create a User model using the user schema
