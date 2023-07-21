@@ -105,8 +105,14 @@ router.put('/newskills', async (req, res) => {
     // Get the current predefined skills list from the database
     const predefinedSkills = await User.schema.path("predefinedSkills").caster.enumValues;
 
+    // Check for common skills and add only new skills that don't already exist in predefinedSkills
+    const uniqueNewSkills = newSkills.filter((skill) => !predefinedSkills.includes(skill));
+    if (uniqueNewSkills.length === 0) {
+      return res.status(400).json({ error: 'All skills already exist in predefinedSkills' });
+    }
+
     // Add new skills to the predefinedSkills list
-    predefinedSkills.push.apply(predefinedSkills, newSkills)
+    predefinedSkills.push.apply(predefinedSkills, uniqueNewSkills)
     
     await User.updateOne({}, { $set: { predefinedSkills } }); // saving the changes in db
 
