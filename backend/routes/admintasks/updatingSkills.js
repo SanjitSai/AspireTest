@@ -21,7 +21,7 @@ router.get('/', async (req, res) => {
 
 router.put('/', async (req, res) =>{
   try{
-    const { invalidskills } = req.body;
+    const { username, invalidskills } = req.body;
     // Retrieve new added skills fom userSchema
 
     const user = await User.findOne({ username });
