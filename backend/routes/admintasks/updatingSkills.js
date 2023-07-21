@@ -19,6 +19,15 @@ router.get('/', async (req, res) => {
   }
 });
 
+/*** Update predefined skills list and remove invalid skills from users' skills.
+ * @route PUT /skills
+ * @group Skills - Operations related to user skills
+ * @param {string} username.body.required - The username of the admin making changes
+ * @param {Array<string>} invalidskills.body.required - The list of invalid skills reported by the admin
+ * @returns {object} 200 - Success response with the updated predefined skills list
+ * @returns {object} 404 - Error response if the user is not found or invalid
+ * @returns {object} 500 - Error response for server error
+ */
 router.put('/', async (req, res) =>{
   try{
     const { username, invalidskills } = req.body;
@@ -37,12 +46,15 @@ router.put('/', async (req, res) =>{
     if(user.role !== 'admin'){
        return res.status(404).json({ error: 'Only admin can make cahnges'})
     }
-  
+
+    // Get the current predefined skills and skills added by user lists from the database
     const newlyAddedSkillsbyUser = await User.schema.path("skillsAddedbyUser").caster.enumValues;
     const predefinedSkills = await User.schema.path("predefinedSkills").caster.enumValues;
 
-    const updatedPredefinedSkills = predefinedSkills.filter((skill) => !invalidSkills.includes(skill)); // filtering out invalid skills from predefinedSkills list
-    await User.updateOne({}, { $set: { predefinedSkills: updatedPredefinedSkills } }); // saving the changes in the database
+    // Filter out invalid skills from the predefinedSkills list
+    const updatedPredefinedSkills = predefinedSkills.filter((skill) => !invalidSkills.includes(skill));
+    
+    await User.updateOne({}, { $set: { predefinedSkills: updatedPredefinedSkills } }); // Update the predefinedSkills field in the database
 
     // Now we have to delete these invalid skills from user's skill section if they exist.
     const usersWithInvalidSkills = await User.find({ skills: { $in: invalidSkills } });
@@ -52,7 +64,7 @@ router.put('/', async (req, res) =>{
       await user.save();
     });
 
-    // making skillsAddedbyUser as empty list
+    // Empty the skillsAddedbyUser list in the database
     await User.updateOne({}, { $set: { skillsAddedbyUser: [] } });
     return res.json({ message: 'Skill updated successfully', updatedPredefinedSkills });
     
@@ -62,6 +74,15 @@ router.put('/', async (req, res) =>{
   }
 });
 
+/*** Add new skills to the predefined skills list by the admin.
+ * @route PUT /skills/newskills
+ * @group Skills - Operations related to user skills
+ * @param {string} username.body.required - The username of the admin making changes
+ * @param {Array<string>} newSkills.body.required - The list of new skills to be added
+ * @returns {object} 200 - Success response with the updated predefined skills list
+ * @returns {object} 404 - Error response if the user is not found or invalid
+ * @returns {object} 500 - Error response for server error
+ */
 router.put('/newskills', async (req, res) => {
   try{
     const { username, newSkills } = req.body;
@@ -80,10 +101,13 @@ router.put('/newskills', async (req, res) => {
     if(user.role !== 'admin'){
        return res.status(404).json({ error: 'Only admin can make changes'})
     }
-    
+
+    // Get the current predefined skills list from the database
     const predefinedSkills = await User.schema.path("predefinedSkills").caster.enumValues;
 
-    predefinedSkills.push.apply(predefinedSkills, newSkills)// Adding new skills to the predefinedSkills list by admin 
+    // Add new skills to the predefinedSkills list
+    predefinedSkills.push.apply(predefinedSkills, newSkills)
+    
     await User.updateOne({}, { $set: { predefinedSkills } }); // saving the changes in db
 
     return res.json({ message: 'Skill added successfully', predefinedSkills });
