@@ -2,8 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { User, userService } = require("../../userService");
 
-/**
- * Get the predefined skills list.
+/*** Get the predefined skills list.
  * @route GET /skills
  * @group Skills - Operations related to user skills
  * @returns {object} 200 - Success response with the predefined skills list
