@@ -68,10 +68,62 @@ router.put('/', async (req, res) => {
       return res.json({ message: 'Skill is not predefined, add to the list', predefinedSkills });
     }
   } catch (error) {
-    console.error(error);
+    console.error('Error while adding new skill to the users skill section:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });
+
+
+/*** Add a skill to the predefinedSkills list if it does not already exist.
+ * If the skill already exists, respond with an error message.
+ *
+ * @route PUT /skills
+ * @group Skills - Operations related to user skills
+ * @param {string} username.body.required - The username of the user
+ * @param {string} skill.body.required - The skill to be added
+ * @returns {object} 200 - Success response if the skill is added to the predefinedSkills list
+ * @returns {object} 400 - Error response if the skill already exists in the predefinedSkills list
+ * @returns {object} 404 - Error response if the user not found or invalid user
+ * @returns {object} 500 - Error response for server error
+ */
+router.put('/useraddedskill', async (req, res) => {
+  try {
+    const { username, skill } = req.body; // taking request from the user
+
+    const user = await User.findOne({ username });
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    if (user.jwtToken === "") {
+      return res.status(404).json({ error: 'Invalid User' })
+    }
+
+    const predefinedSkills = await userService.getPredefinedSkills(); // Getting predefinedSkills list from UserSchema using getPredefinedSkills function in userService.js
+    const trimmedSkill = skill.trim();
+    const trimmedSkillLowerCase = trimmedSkill.toLowerCase();
+    const predefinedSkillsLowerCase = predefinedSkills.map(skill => skill.toLowerCase());
+
+
+    if (predefinedSkillsLowerCase.includes(trimmedSkillLowerCase)) {
+      
+      return res.json({ message: 'Skill already exists.'});
+    } else {
+      // Add new skill to the predefinedSkills list and save it in userSchema
+      predefinedSkills.push(trimmedSkill);
+      
+      // Save the updated schema to the database
+      await User.updateOne({}, { $set: { predefinedSkills: predefinedSkills } });
+      
+      return res.json({ message: 'Skill is added to predefined'});
+    }
+  } catch (error) {
+    console.error('Error while adding new skill to the predefinedSkills:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 
 /*** Delete a skill from the user's skills array.
  * @route DELETE /skills
@@ -82,7 +134,6 @@ router.put('/', async (req, res) => {
  * @returns {object} 404 - Error response if the user or skill not found
  * @returns {object} 500 - Error response for server error
  */
-
 router.delete('/', async (req, res) => {
   try {
     const { username, skill } = req.body;
@@ -108,7 +159,7 @@ router.delete('/', async (req, res) => {
 
     res.json({ message: 'Skill deleted successfully', skills: user.skills });
   } catch (error) {
-    console.error(error);
+    console.error('Error while deleting skill from the users skill section:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });
