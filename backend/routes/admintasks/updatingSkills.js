@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const nodemailer = require('nodemailer');
 const { User, userService } = require("../../userService");
 
 /* Get the predefined skills list.
@@ -120,6 +121,69 @@ router.put('/newskills', async (req, res) => {
     
   }catch (error) {
     console.error('Error while adding new skills to predefined skills:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+
+/*** Ban a user's account.
+ * @route PUT /admintasks/ban
+ * @group Admin Tasks - Operations related to admin tasks
+ * @param {string} username.body.required - The username of the user to be banned
+ * @returns {object} 200 - Success response with a message indicating the user is banned
+ * @returns {object} 404 - Error response if the user is not found or invalid
+ * @returns {object} 500 - Error response for server error
+ */
+router.put('/ban', async (req, res) =>{
+  try{
+    const { username } = req.body;
+
+    const user = await User.findOne({ username });
+
+    if(!user){
+      return res.status(404).json({error: 'User not found'})
+    }
+
+    if(user.jwtToken === ""){
+      return res.status(404).json({error: 'Invalid User'})
+    }
+
+    if (user.role !== 'admin') {
+       return res.status(404).json({ error: 'Only admin can make changes' })
+    }
+
+    // Set the isBanned field to true to ban the user's account
+    user.isBanned = true;
+    await user.save();
+
+    // Send email to the user's email address
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: user.email,
+      subject: 'Account Banned',
+      text: 'Your account has been banned. If you have any concerns, please contact the administrator.',
+    };
+
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASSWORD,
+      },
+    });
+
+    transporter.sendMail(mailOptions, (error, info) => {
+      if (error) {
+        console.log('Error sending email:', error);
+      } else {
+        console.log('Email sent:', info.response);
+      }
+    });
+
+    return res.json({ message: 'User account is banned' });
+    
+  } catch(error) {
+    console.error('Error while banning user account:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });
